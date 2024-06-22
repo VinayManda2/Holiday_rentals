@@ -1,48 +1,64 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { setUser } from "../redux/authSlice"; // Import setUser action from authSlice
 
 const Login = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login logic goes here");
-    console.log(username);
-    console.log(password);
-    const response = await fetch("http://localhost:8080/api/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Login successful:", data);
-      console.log("user id :", data.user._id);
-      console.log("user name :", data.user.username);
-      // Store userid and username in localStorage
-      localStorage.setItem("userid", data.user._id);
-      localStorage.setItem("username", data.user.username);
-    } else {
-      console.error("Login failed");
-      const errorData = await response.json();
-      console.error("Error:", errorData.message);
+
+    const requestBody = {
+      username,
+      password,
+    };
+
+    try {
+      const response = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+
+      const { token } = await response.json();
+      const decoded = jwtDecode(token);
+
+      dispatch(setUser({ userId: decoded.userId, username: decoded.username }));
+
+      localStorage.setItem("token", token);
+      navigate(`/api/listings`);
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      setError("Login failed. Please check your username and password.");
     }
   };
 
   return (
     <div className="row mt-3">
-      <h1 className="col-6 offset-3">login on wanderlust</h1>
+      <h1 className="col-6 offset-3">Login on Wanderlust</h1>
       <div className="col-8 offset-2">
         <form onSubmit={handleSubmit} noValidate className="needs-validation">
           <div className="mt-3">
             <label htmlFor="username" className="form-label">
-              userName
+              Username
             </label>
             <input
               name="username"
               id="username"
-              placeholder="enter userName"
+              placeholder="Enter username"
               type="text"
               className="form-control"
               value={username}
@@ -53,12 +69,12 @@ const Login = () => {
 
           <div className="mt-3">
             <label htmlFor="password" className="form-label">
-              password
+              Password
             </label>
             <input
               name="password"
               id="password"
-              placeholder="enter password"
+              placeholder="Enter password"
               type="password"
               className="form-control"
               value={password}
@@ -66,16 +82,19 @@ const Login = () => {
               required
             />
           </div>
+
+          {error && <div className="mt-3 text-danger">{error}</div>}
+
           <button type="submit" className="btn btn-success mt-3">
-            login
+            Login
           </button>
         </form>
       </div>
-      <div>
-        <p>not logged in sign up here</p>
-        <Link className="nav-link" to="/api/signup">
-          <b>Sign Up</b>
-        </Link>
+
+      <div className="mt-3">
+        <p>
+          Not registered? Sign up <Link to="/api/signup">here</Link>.
+        </p>
       </div>
     </div>
   );

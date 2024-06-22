@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setItem } from "../redux/itemSlice";
 
 const Properties = () => {
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [filteredListings, setFilteredListings] = useState([]);
   const [showTaxes, setShowTaxes] = useState(false);
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const filters = [
     { label: "All", icon: "fa-hotel" },
@@ -24,7 +29,7 @@ const Properties = () => {
     { label: "DineOuts", icon: "fa-bell-concierge" },
   ];
 
-  const baseURL = "http://localhost:8080/api"; // Update this with your server's address
+  const baseURL = "http://localhost:8080/api";
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -52,6 +57,23 @@ const Properties = () => {
 
   const handleTaxChange = (event) => {
     setShowTaxes(event.target.checked);
+  };
+
+  const handleCardClick = (listing) => {
+    dispatch(
+      setItem({
+        title: listing.title,
+        image: listing.image, // Use the image object directly
+        ownerUsername: listing.owner.username,
+        ownerId: listing.owner._id,
+        description: listing.description,
+        price: listing.price,
+        location: listing.location,
+        country: listing.country,
+      })
+    );
+
+    navigate(`/api/listings/${listing._id}`);
   };
 
   return (
@@ -88,11 +110,11 @@ const Properties = () => {
       </div>
       <div className="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 mt-2">
         {filteredListings.map((listing) => (
-          <Link
-            to={`/api/listings/${listing._id}`}
+          <div
             className="listing-link"
             key={listing._id}
-            listing={listing} // Pass the listing object as props
+            onClick={() => handleCardClick(listing)}
+            style={{ cursor: "pointer" }}
           >
             <div className="card col listing-card" style={{ width: "25rem" }}>
               <img
@@ -115,7 +137,7 @@ const Properties = () => {
                 </p>
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

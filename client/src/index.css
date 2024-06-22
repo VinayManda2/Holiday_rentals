@@ -21,7 +21,7 @@ body{
   position: fixed; /* Fix the navbar at the top of the page */
   top: 0;
   left: 0;
-  z-index: 1000; /* Ensure the navbar is on top of other content */
+   z-index: 1000;
 }
 
 .fa-compass {
@@ -148,13 +148,13 @@ body{
   display: flex;
   flex-wrap: wrap;
   text-align: center;
-  margin-top: 3rem;
+  
 }
 .filter{
-  margin-top: 3rem;
+  
   margin-right: 2rem;
   text-align: center;
-  margin-top: 2rem;
+  
   opacity: 0.7;
   
 }

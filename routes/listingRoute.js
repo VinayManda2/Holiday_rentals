@@ -17,7 +17,7 @@ router.route("/").get( wrapAsync(listingController.index))
 //Create Route
 router.post("/new",upload.single("file"), wrapAsync(listingController.createListing));
 
-router.post("/new/test",upload.single("file"),wrapAsync(listingController.testing));
+
 
 // show, update, delete 
 router.route("/:id")

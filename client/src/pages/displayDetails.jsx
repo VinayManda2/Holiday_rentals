@@ -1,56 +1,44 @@
-// eslint-disable-next-line no-unused-vars
 import { Link, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useState } from "react";
 import axios from "axios";
-import "./pages/rating.css";
+import "./rating.css";
+import { setItem } from "../redux/itemSlice"; // Ensure the path is correct
+import { selectUser } from "../redux/authSlice"; // Ensure the path is correct
 
-const Log = () => {
+const DisplayDetails = () => {
   const params = useParams();
-  const [loading, setLoading] = useState(true);
-  const [item, setItem] = useState({});
+  const item = useSelector((state) => state.item);
+  const dispatch = useDispatch();
+  const { userId: authUserId } = useSelector(selectUser); // Get user ID from Redux store
 
   const [comment, setComment] = useState("");
-  const [rating, setRating] = useState(1);
-
-  const userId = localStorage.getItem("userid");
-
-  useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(
-          `http://localhost:8080/api/listings/${params.id}`
-        );
-
-        const data = response.data.listing;
-
-        setItem(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching listing:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchListing();
-  }, [params.id]);
-
-  console.log("after ", item);
+  const [rating, setRating] = useState(1); // Default rating to 1 star
 
   const handleDelete = async () => {
     try {
       await axios.delete(`http://localhost:8080/api/listings/${item._id}`);
+      // Optionally, you can clear the item from the store after deletion
+      dispatch(
+        setItem({
+          title: "",
+          image: {
+            url: "",
+            filename: "",
+          },
+          ownerUsername: "",
+          ownerId: "",
+          description: "",
+          price: 0,
+          location: "",
+          country: "",
+        })
+      );
     } catch (error) {
       console.error("Error deleting listing:", error);
     }
   };
 
-  if (!item) return "";
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  // reviews
   const handleRatingChange = (event) => {
     setRating(parseInt(event.target.value));
   };
@@ -65,6 +53,28 @@ const Log = () => {
     console.log(`comment ${comment} and rating ${rating}`);
   };
 
+  const handleDeleteReview = async (reviewId) => {
+    try {
+      const response = await fetch(`/api/reviews/${reviewId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        // Optionally, perform additional actions after successful deletion
+        console.log(`Review ${reviewId} deleted successfully`);
+      } else {
+        console.error("Delete review failed:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Delete review failed:", error.message);
+    }
+  };
+
+  if (!item.title) return <div>Loading...</div>;
+
   return (
     <div className="row mt-3 ">
       <div className="col-8 offset-3">
@@ -73,13 +83,13 @@ const Log = () => {
 
       <div className="card col-6 offset-3 show-card listing-card">
         <img
-          src={item.image.url}
+          src={item.image.url} // Use the image URL from the image object
           className="card-img-top show-img"
-          alt="listing_image"
+          alt={item.image.filename} // Use the image filename as the alt text
         />
         <div className="card-body">
-          <h5 className="card-title">owned by {item.owner.username}</h5>
-          <p className="card-text">{item.description}</p>
+          <h5 className="card-title">Owned by {item.ownerUsername}</h5>
+          <p className="card-text mt-2">{item.description}</p>
           <p className="card-text">
             &#8377; {item.price.toLocaleString("en-IN")}
           </p>
@@ -88,10 +98,10 @@ const Log = () => {
         </div>
       </div>
 
-      {userId && userId === item.owner._id && (
+      {authUserId && authUserId === item.ownerId && (
         <div className="btns">
           <Link
-            to={`/api/listings/${item._id}/edit`}
+            to={`/api/listings/${params.id}/edit`}
             className="btn btn-dark col-1 offset-3 edit-btn"
           >
             Edit
@@ -104,7 +114,7 @@ const Log = () => {
       )}
 
       <div className="col-8 offset-2">
-        {userId && (
+        {authUserId && (
           <>
             <hr />
             <h4>Leave a review</h4>
@@ -124,7 +134,8 @@ const Log = () => {
                     className="input-no-rate"
                     name="review[rating]"
                     value="0"
-                    checked
+                    checked={rating === 0}
+                    onChange={handleRatingChange}
                     aria-label="No rating."
                   />
                   <input
@@ -132,6 +143,7 @@ const Log = () => {
                     id="first-rate1"
                     name="review[rating]"
                     value="1"
+                    checked={rating === 1}
                     onChange={handleRatingChange}
                   />
                   <label htmlFor="first-rate1" title="Terrible">
@@ -142,6 +154,7 @@ const Log = () => {
                     id="first-rate2"
                     name="review[rating]"
                     value="2"
+                    checked={rating === 2}
                     onChange={handleRatingChange}
                   />
                   <label htmlFor="first-rate2" title="Not good">
@@ -152,6 +165,7 @@ const Log = () => {
                     id="first-rate3"
                     name="review[rating]"
                     value="3"
+                    checked={rating === 3}
                     onChange={handleRatingChange}
                   />
                   <label htmlFor="first-rate3" title="Average">
@@ -162,6 +176,7 @@ const Log = () => {
                     id="first-rate4"
                     name="review[rating]"
                     value="4"
+                    checked={rating === 4}
                     onChange={handleRatingChange}
                   />
                   <label htmlFor="first-rate4" title="Very good">
@@ -172,6 +187,7 @@ const Log = () => {
                     id="first-rate5"
                     name="review[rating]"
                     value="5"
+                    checked={rating === 5}
                     onChange={handleRatingChange}
                   />
                   <label htmlFor="first-rate5" title="Amazing">
@@ -193,7 +209,7 @@ const Log = () => {
                   onChange={handleCommentChange}
                 ></textarea>
                 <div className="invalid-feedback">
-                  please add some comments for review
+                  Please add some comments for review
                 </div>
               </div>
               <button className="btn btn-outline-dark">Submit</button>
@@ -204,29 +220,30 @@ const Log = () => {
         <hr />
         <h4>All reviews</h4>
         <div className="row">
-          {item.reviews.map((review) => (
-            <div key={review._id} className="card col-5 ms-3 mb-3">
-              <div className="card-body">
-                <h5 className="card-title">@{review.author.username}</h5>
+          {item.reviews &&
+            item.reviews.map((review) => (
+              <div key={review._id} className="card col-5 ms-3 mb-3">
+                <div className="card-body">
+                  <h5 className="card-title">@{review.author.username}</h5>
 
-                <p className="card-text">{review.comment}</p>
-                {userId && userId === review.author._id && (
-                  <form
-                    onSubmit={() => handleDeleteReview(review._id)}
-                    className="mb-3"
-                  >
-                    <button type="submit" className="btn btn-sm btn-dark">
-                      Delete
-                    </button>
-                  </form>
-                )}
+                  <p className="card-text">{review.comment}</p>
+                  {authUserId && authUserId === review.author._id && (
+                    <form
+                      onSubmit={() => handleDeleteReview(review._id)}
+                      className="mb-3"
+                    >
+                      <button type="submit" className="btn btn-sm btn-dark">
+                        Delete
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </div>
   );
 };
 
-export default Log;
+export default DisplayDetails;

@@ -1,7 +1,9 @@
 const User = require("../models/userModel.js");
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+require('dotenv').config(); // To load environment variables from .env file
 
+// Sign up new user
 module.exports.signUp = async (req, res, next) => {
     try {
         let { userName, email, password } = req.body;
@@ -16,8 +18,7 @@ module.exports.signUp = async (req, res, next) => {
     }
 };
 
-
-
+// Log in user
 module.exports.logIn = async (req, res, next) => {
     passport.authenticate('local', async (err, user, info) => {
         try {
@@ -32,9 +33,9 @@ module.exports.logIn = async (req, res, next) => {
                     return next(err);
                 }
                 // Generate JWT with user information
-                const token = jwt.sign({ userId: user._id, username: user.username, email: user.email }, 'your_secret_key_here', { expiresIn: '1h' });
-                // Send the token and user as a response
-                return res.status(200).json({ token, user });
+                const token = jwt.sign({ userId: user._id, username: user.username, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                // Send the token as a response
+                return res.status(200).json({ token });
             });
         } catch (error) {
             return next(error);
@@ -42,8 +43,7 @@ module.exports.logIn = async (req, res, next) => {
     })(req, res, next);
 };
 
-
-
+// Log out user
 module.exports.logOut = (req, res) => {
     req.logOut((err) => {
         if (err) {
@@ -55,9 +55,8 @@ module.exports.logOut = (req, res) => {
     });
 };
 
-// Route to get current user
+// Get current user
 module.exports.currentUser = async (req, res) => {
-    const User = await res.locals.currentUser
-    res.json({ currentUser: User });
+    // Assuming currentUser is set in the request object by passport
+    res.json({ currentUser: req.user });
 };
-

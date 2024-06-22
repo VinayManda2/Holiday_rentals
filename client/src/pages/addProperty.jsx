@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { selectUser } from "../redux/authSlice"; // Adjust the import path as necessary
 
 const AddProperty = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -11,6 +15,7 @@ const AddProperty = () => {
   });
 
   const [file, setFile] = useState();
+  const userId = useSelector(selectUser); // Get user ID from Redux state
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,15 +37,21 @@ const AddProperty = () => {
       location,
     });
 
-    const userId = localStorage.getItem("userid");
-    if (!userId) {
-      console.error("User ID not found in localStorage");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token not found in localStorage");
       return;
     }
 
+    if (!userId) {
+      console.error("User ID not found in state");
+      return;
+    }
+    // let id = userId.userId;
+    // console.log(userId);
     // Create FormData object to handle file upload
     const formDataToSend = new FormData();
-    formDataToSend.append("userId", userId);
+    formDataToSend.append("userId", userId.userId);
     formDataToSend.append("title", title);
     formDataToSend.append("description", description);
     formDataToSend.append("price", price);
@@ -48,12 +59,23 @@ const AddProperty = () => {
     formDataToSend.append("location", location);
     formDataToSend.append("file", file);
 
+    // Log the FormData entries
+    for (let pair of formDataToSend.entries()) {
+      console.log(pair[0] + ": " + pair[1]);
+    }
+
     try {
       const response = await axios.post(
         "http://localhost:8080/api/listings/new",
-        formDataToSend
+        formDataToSend,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       console.log(response);
+      navigate(`/api/listings`);
     } catch (error) {
       console.log(error);
     }

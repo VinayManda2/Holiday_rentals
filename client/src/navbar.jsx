@@ -1,14 +1,11 @@
 import { Link } from "react-router-dom";
-
-import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { logout, selectUser } from "./redux/authSlice";
 
 const Navbar = () => {
-  const [userid, setUserid] = useState(null);
+  const dispatch = useDispatch();
 
-  useEffect(() => {
-    const storedUserid = localStorage.getItem("userid");
-    setUserid(storedUserid);
-  }, []);
+  const { isAuthenticated } = useSelector(selectUser);
 
   const handleLogout = async () => {
     try {
@@ -20,10 +17,11 @@ const Navbar = () => {
       });
 
       if (response.ok) {
-        // Remove the userid from localStorage
-        localStorage.removeItem("userid");
-        localStorage.removeItem("username");
-        setUserid(null);
+        // Remove token from localStorage
+        localStorage.removeItem("token");
+
+        // Dispatch logout action to clear user data from Redux store
+        dispatch(logout());
       } else {
         console.error("Logout failed:", response.statusText);
       }
@@ -33,7 +31,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar navbar-expand-md navbar-light bg-body-light border-bottom sticky-top ">
+    <nav className="navbar navbar-expand-md navbar-light bg-body-light border-bottom ">
       <div className="container-fluid">
         <Link className="navbar-brand" to="/api/listings">
           <i className="fa-regular fa-compass"></i>
@@ -72,7 +70,7 @@ const Navbar = () => {
             <Link className="nav-link" to="/api/listings/new">
               Add New Listing
             </Link>
-            {userid ? (
+            {isAuthenticated ? (
               <button className="nav-link" onClick={handleLogout}>
                 <b>Logout</b>
               </button>

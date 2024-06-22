@@ -1,41 +1,72 @@
 import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { setItem } from "../redux/itemSlice"; // Ensure the path is correct
 
 const EditListingForm = () => {
-  const listing = {
-    _id: {
-      $oid: "664742b56694ffbd6b4a54cb",
-    },
-    title: "Modern Loft in Downtown",
-    description:
-      "Stay in the heart of the city in this stylish loft apartment. Perfect for urban explorers!",
-    image: {
-      url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fHRyYXZlbHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
-      filename: "listingimage",
-    },
-    price: 1200,
-    location: "New York City",
-    country: "United States",
-    reviews: [],
-    owner: {
-      $oid: "66420d6952cf1bdd3b0a6981",
-    },
-    __v: 0,
-  };
+  const { id } = useParams(); // Get listing ID from URL params
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const originalUrl =
-    "https://t4.ftcdn.net/jpg/02/81/89/73/360_F_281897358_3rj9ZBSZHo5s0L1ug7uuIHadSxh9Cc75.jpg";
+  // Fetch the listing from Redux store using useSelector
+  const initialListing = useSelector((state) => state.item);
 
+  // State variables to manage form data
   const [formData, setFormData] = useState({
-    id: "664742b56694ffbd6b4a54cb",
-    title: listing.title,
-    description: listing.description,
-    price: listing.price,
-    country: listing.country,
-    location: listing.location,
+    title: initialListing.title || "",
+    description: initialListing.description || "",
+    price: initialListing.price || 0,
+    country: initialListing.country || "",
+    location: initialListing.location || "",
   });
 
-  const [file, setFile] = useState(listing.image);
+  const [file, setFile] = useState(initialListing.image); // File state for image upload
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // Create FormData object to handle file upload
+    const formDataToSend = new FormData();
+    formDataToSend.append("id", id);
+    formDataToSend.append("title", formData.title);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("price", formData.price);
+    formDataToSend.append("country", formData.country);
+    formDataToSend.append("location", formData.location);
+    formDataToSend.append("file", file);
+
+    // Log FormData entries before sending to the server
+
+    try {
+      const response = await axios.put(
+        `http://localhost:8080/api/listings/${id}`,
+        formDataToSend
+      );
+
+      // Update the item in Redux store after successful edit
+      dispatch(
+        setItem({
+          _id: initialListing._id,
+          title: formData.title,
+          description: formData.description,
+          price: formData.price,
+          country: formData.country,
+          location: formData.location,
+          image: {
+            url: response.data.image.url, // Update imageUrl from response
+            filename: response.data.image.filename, // Update imageName from response
+          },
+          ownerUsername: initialListing.ownerUsername, // Retain ownerUsername from existing state
+          ownerId: initialListing.ownerId, // Retain ownerId from existing state
+        })
+      );
+
+      // Optionally, redirect or perform other actions upon successful edit
+      navigate(`/api/listings/${id}`);
+    } catch (error) {
+      console.error("Error editing listing:", error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,31 +74,6 @@ const EditListingForm = () => {
       ...formData,
       [name]: value,
     });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const { id, title, description, price, country, location } = formData;
-    console.log("object");
-    console.log({ title, description, price, country, location });
-
-    // Create FormData object to handle file upload
-    const formDataToSend = new FormData();
-    formDataToSend.append("id", id);
-    formDataToSend.append("title", title);
-    formDataToSend.append("description", description);
-    formDataToSend.append("price", price);
-    formDataToSend.append("country", country);
-    formDataToSend.append("location", location);
-    formDataToSend.append("file", file);
-    console.log("form data to send ", formDataToSend);
-    await axios
-      .put(`http://localhost:8080/api/listings/${listing._id}`, formDataToSend)
-      .then((res) => {
-        console.log(res);
-      })
-      .catch((er) => console.log(er));
   };
 
   return (
@@ -91,7 +97,6 @@ const EditListingForm = () => {
               type="text"
               className="form-control"
             />
-            <div className="valid-feedback">Title Looks good!</div>
           </div>
           <div className="mb-3">
             <label htmlFor="description" className="form-label">
@@ -103,17 +108,20 @@ const EditListingForm = () => {
               onChange={handleChange}
               className="form-control"
             ></textarea>
-            <div className="invalid-feedback">
-              Please enter a short description.
-            </div>
           </div>
-          <div>
-            <label className="form-label">Original Listing Image</label> <br />
-            <img src={originalUrl} alt="unable to load" />
+          <div className="mb-3">
+            <label className="form-label">Current Listing Image</label> <br />
+            {file.url && (
+              <img
+                src={file.url}
+                alt="Current Listing"
+                style={{ height: "200px" }}
+              />
+            )}
           </div>
           <div className="mb-3">
             <label htmlFor="image" className="form-label">
-              Upload Image
+              Upload New Image
             </label>
             <input
               name="image"
@@ -134,9 +142,6 @@ const EditListingForm = () => {
                 type="number"
                 className="form-control"
               />
-              <div className="invalid-feedback">
-                Please enter a valid price.
-              </div>
             </div>
             <div className="mb-3 col-md-8">
               <label htmlFor="country" className="form-label">
@@ -149,9 +154,6 @@ const EditListingForm = () => {
                 type="text"
                 className="form-control"
               />
-              <div className="invalid-feedback">
-                Please enter the country name.
-              </div>
             </div>
           </div>
           <div className="mb-3">
@@ -165,7 +167,6 @@ const EditListingForm = () => {
               type="text"
               className="form-control"
             />
-            <div className="invalid-feedback">Please enter a location.</div>
           </div>
           <button type="submit" className="btn btn-dark edit-btn mt-3">
             Edit

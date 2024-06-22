@@ -2,23 +2,25 @@ const Listing = require("../models/listingModel.js");
 
 module.exports.index = async (req, res) => {
     try {
-        const allListings = await Listing.find({});
+        const allListings = await Listing.find({}).populate('owner');
         res.json(allListings);
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
     }
 };
 
+
+
 module.exports.createListing = async (req, res) => {
     try {
-
         // Parse form data
         const { userId, title, description, price, country, location } = req.body;
-        const { path, filename } = req.file;
+        const file = req.file;
+        console.log("file details ",file);
+        if (!file) {
+            return res.status(400).json({ error: "File is required" });
+        }
 
-        
-        console.log("user server",res.locals.currentUser);
-console.log("user client",userId);
         // Create a new Listing object
         const newListing = new Listing({
             title,
@@ -27,9 +29,9 @@ console.log("user client",userId);
             country,
             location,
             owner: userId, 
-            image: { url: path, filename }
+            image: { url: file.path, filename: file.filename }
         });
-
+        console.log("new listing",newListing);
         // Save the new listing to the database
         await newListing.save();
 
@@ -42,33 +44,6 @@ console.log("user client",userId);
     }
 };
 
-
-
-module.exports.update = async (req, res) => {
-    try {
-        
-        const { id, title, description, price, country, location } = req.body;
-        const { path, filename } = req.file;
-        let listing = await Listing.findByIdAndUpdate(id, { ...req.body.listing }, { new: true });
-        if (!listing) {
-            return res.status(404).json({ error: "Listing doesn't exist" });
-        }
-        if (req.file) {
-            listing.image = { url:path, filename };
-            await listing.save();
-        }
-        if(req.body){
-            listing.title = title;
-            listing.description = description;
-            listing.price = price;
-            listing.country = country;
-            listing.location = location;
-        }
-        res.json(listing);
-    } catch (err) {
-        res.status(400).json({ error: 'Bad Request' });
-    }
-};
 
 module.exports.delete = async (req, res) => {
     try {
@@ -108,10 +83,36 @@ module.exports.show = async (req, res) => {
     }
 };
 
-module.exports.testing = async (req, res) => {
-    const { title, description,image, price, country, location } = req.body;
-    console.log('Body:', req.body);
-    console.log('File:', req.file);
-    console.log({ title, description,image, price, country, location });
-    res.status(200);
-}
+
+
+module.exports.update = async (req, res) => {
+  try {
+    const { id, title, description, price, country, location } = req.body;
+    
+    let listing = await Listing.findByIdAndUpdate(id, { ...req.body.listing });
+    if (!listing) {
+      return res.status(404).json({ error: "Listing doesn't exist" });
+    }
+
+    
+    if (typeof req.file != "undefined") {
+      
+      const url = req.file.path;
+      const filename = req.file.filename;
+      listing.image = { url, filename };
+      
+    }
+    // Update other fields if they exist in req.body
+    if (title) listing.title = title;
+    if (description) listing.description = description;
+    if (price) listing.price = price;
+    if (country) listing.country = country;
+    if (location) listing.location = location;
+
+    await listing.save();
+    res.json(listing);
+  } catch (err) {
+    console.error("Error updating listing:", err);
+    res.status(400).json({ error: 'Bad Request' });
+  }
+};

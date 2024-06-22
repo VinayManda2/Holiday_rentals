@@ -8,8 +8,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { Provider } from "react-redux";
 import store from "./redux/store.js";
-
-import Gap from "./gap.jsx";
+import Gap from "./gap";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
